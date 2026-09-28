@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Attendance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --accent: #38bdf8;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --border: #334155;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    h2 { margin-top: 0; font-size: 1.25rem; color: var(--accent); }
+
+    /* Controls & Simulator */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      margin-bottom: 4px;
+      color: #94a3b8;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    /* Chatbot Styles */
+    #chat-widget-button {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #chat-window {
+      position: fixed;
+      bottom: 90px;
+      right: 24px;
+      width: 360px;
+      height: 480px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      display: none;
+      flex-direction: column;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 12px 16px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: #334155;
+      color: var(--text);
+    }
+
+    .chat-input-area {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input-area input {
+      flex: 1;
+    }
+
+    .chat-input-area button {
+      width: auto;
+      padding: 8px 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-grid">
+    <!-- Visual Charts -->
+    <div class="card">
+      <h2>Attendance Overview</h2>
+      <canvas id="attendanceChart"></canvas>
+    </div>
+
+    <!-- OD / Leave Simulator -->
+    <div class="card">
+      <h2>OD / Leave Simulator</h2>
+      <div class="form-group">
+        <label for="simSubject">Select Subject</label>
+        <select id="simSubject"></select>
+      </div>
+      <div class="form-group">
+        <label for="simType">Adjustment Type</label>
+        <select id="simType">
+          <option value="OD">On-Duty (OD) / Medical (Adds to Attended & Total)</option>
+          <option value="Absence">Unexcused Leave (Adds to Total only)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="simDays">Number of Days / Classes</label>
+        <input type="number" id="simDays" min="1" value="1" />
+      </div>
+      <button onclick="runSimulation()">Simulate Impact</button>
+      <div id="simResult" style="margin-top: 16px; font-size: 0.9rem;"></div>
+    </div>
+  </div>
+
+  <!-- Attendance Advisor Chatbot Floating Interface -->
+  <button id="chat-widget-button" onclick="toggleChat()">💬</button>
+
+  <div id="chat-window">
+    <div class="chat-header">
+      <span>Attendance Advisor</span>
+      <span style="cursor:pointer;" onclick="toggleChat()">✕</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        Hi! Ask me questions like: <em>"If I take 3 days off in Chemistry, will I drop below 75%?"</em>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') sendMessage()" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // Primary Dashboard State
+    let studentData = {
+      "Mathematics": { attended: 38, total: 45, dailyClasses: 1 },
+      "Chemistry": { attended: 31, total: 40, dailyClasses: 1 },
+      "Physics": { attended: 22, total: 30, dailyClasses: 1 },
+      "Computer Science": { attended: 48, total: 50, dailyClasses: 2 }
+    };
+
+    let attendanceChart;
+
+    // Initialize Dashboard Components
+    function initDashboard() {
+      // Populate subject options in simulator
+      const select = document.getElementById("simSubject");
+      select.innerHTML = "";
+      Object.keys(studentData).forEach(subject => {
+        const option = document.createElement("option");
+        option.value = subject;
+        option.textContent = subject;
+        select.appendChild(option);
+      });
+
+      renderChart();
+    }
+
+    // Render / Update Chart.js Bar Chart
+    function renderChart() {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+      const labels = Object.keys(studentData);
+      const percentages = labels.map(sub => {
+        return ((studentData[sub].attended / studentData[sub].total) * 100).toFixed(1);
+      });
+
+      const backgroundColors = percentages.map(p => p >= 75 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
+      const borderColors = percentages.map(p => p >= 75 ? '#22c55e' : '#ef4444');
+
+      if (attendanceChart) {
+        attendanceChart.destroy();
+      }
+
+      attendanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Attendance %',
+            data: percentages,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { color: '#f8fafc' }
+            },
+            x: {
+              ticks: { color: '#f8fafc' }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#f8fafc' } }
+          }
+        }
+      });
+    }
+
+    // OD Simulator Engine
+    function runSimulation() {
+      const subject = document.getElementById("simSubject").value;
+      const type = document.getElementById("simType").value;
+      const count = parseInt(document.getElementById("simDays").value) || 0;
+
+      const current = studentData[subject];
+      let newAttended = current.attended;
+      let newTotal = current.total + count;
+
+      if (type === "OD") {
+        newAttended += count;
+      }
+
+      const currentPct = ((current.attended / current.total) * 100).toFixed(1);
+      const newPct = ((newAttended / newTotal) * 100).toFixed(1);
+      const diff = (newPct - currentPct).toFixed(1);
+
+      const resultDiv = document.getElementById("simResult");
+      const statusColor = newPct >= 75 ? "var(--success)" : "var(--danger)";
+
+      resultDiv.innerHTML = `
+        <strong>${subject} Impact:</strong><br/>
+        Current: ${currentPct}% (${current.attended}/${current.total})<br/>
+        Projected: <span style="color:${statusColor}; font-weight:bold;">${newPct}%</span> (${newAttended}/${newTotal})<br/>
+        Change: ${diff >= 0 ? '+' + diff : diff}%
+      `;
+    }
+
+    // Chatbot Functionality
+    function toggleChat() {
+      const chatWin = document.getElementById("chat-window");
+      chatWin.style.display = chatWin.style.display === "flex" ? "none" : "flex";
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMessage(text, 'user');
+      input.value = '';
+
+      // Engine simulation delay for natural UX
+      setTimeout(() => {
+        const response = processAdvisorQuery(text);
+        appendMessage(response, 'bot');
+      }, 400);
+    }
+
+    function appendMessage(text, sender) {
+      const messagesContainer = document.getElementById("chatMessages");
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${sender}`;
+      msgDiv.innerHTML = text;
+      messagesContainer.appendChild(msgDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Attendance Advisor Query Parser & Engine
+    function processAdvisorQuery(query) {
+      const q = query.toLowerCase();
+
+      // Extract subject
+      let matchedSubject = Object.keys(studentData).find(s => q.includes(s.toLowerCase()));
+
+      // Extract number of days/classes
+      let daysMatch = q.match(/(\d+)\s*(-day|day|class|classes)?/);
+      let days = daysMatch ? parseInt(daysMatch[1]) : 1;
+
+      if (!matchedSubject) {
+        return "I couldn't identify the subject in your question. Please mention one of: " + Object.keys(studentData).join(", ");
+      }
+
+      const data = studentData[matchedSubject];
+      const totalClassesMissed = days * data.dailyClasses;
+      const projectedTotal = data.total + totalClassesMissed;
+      const projectedPct = ((data.attended / projectedTotal) * 100).toFixed(1);
+      const currentPct = ((data.attended / data.total) * 100).toFixed(1);
+
+      if (projectedPct < 75) {
+        return `⚠️ <strong>Warning:</strong> Taking ${days} day(s) off in <strong>${matchedSubject}</strong> will drop your attendance from <strong>${currentPct}%</strong> to <span style="color:var(--danger)"><strong>${projectedPct}%</strong></span>, which is below the mandatory 75% threshold.`;
+      } else {
+        return `✅ <strong>Safe:</strong> Taking ${days} day(s) off in <strong>${matchedSubject}</strong> will lower your attendance from <strong>${currentPct}%</strong> to <strong>${projectedPct}%</strong>. You remain above the 75% threshold.`;
+      }
+    }
+
+    window.onload = initDashboard;
+  </script>
+</body>
+</html>
