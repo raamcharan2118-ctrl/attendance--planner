@@ -1,385 +1,1055 @@
-<!DOCTYPE html>
-<html lang="en">
+400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+            },
+            warning: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+            }<!DOCTYPE html>
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Attendance Dashboard</title>
+  <title>Student Attendance Dashboard & Future Planner</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              900: '#0c4a6e',
+            },
+            danger: {
+              400: '#f87171',
+              500: '#ef4444',
+              600: '#dc2626',
+              950: '#450a0a'
+            },
+            success: {
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
-    :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --text: #f8fafc;
-      --accent: #38bdf8;
-      --danger: #ef4444;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --border: #334155;
-    }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 24px;
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+      color: #f3f4f6;
+    }
+    
+    .glass-card {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-card-hover {
+      transition: all 0.2s ease-in-out;
+    }
+    .glass-card-hover:hover {
+      transform: translateY(-2px);
+      border-color: rgba(56, 189, 248, 0.3);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(56, 189, 248, 0.1);
     }
 
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
-      border: 1px solid var(--border);
-    }
-
-    h2 { margin-top: 0; font-size: 1.25rem; color: var(--accent); }
-
-    /* Controls & Simulator */
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.875rem;
-      margin-bottom: 4px;
-      color: #94a3b8;
-    }
-
-    select, input {
-      width: 100%;
-      padding: 8px 12px;
+    ::-webkit-scrollbar-track {
       background: #0f172a;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      box-sizing: border-box;
     }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      background: var(--accent);
-      color: #0f172a;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    button:hover { opacity: 0.9; }
-
-    /* Chatbot Styles */
-    #chat-widget-button {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #0f172a;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    #chat-window {
-      position: fixed;
-      bottom: 90px;
-      right: 24px;
-      width: 360px;
-      height: 480px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      display: none;
-      flex-direction: column;
-      z-index: 1000;
-      overflow: hidden;
-    }
-
-    .chat-header {
-      padding: 12px 16px;
-      background: #0f172a;
-      border-bottom: 1px solid var(--border);
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chat-messages {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .message {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      line-height: 1.4;
-    }
-
-    .message.user {
-      align-self: flex-end;
-      background: var(--accent);
-      color: #0f172a;
-    }
-
-    .message.bot {
-      align-self: flex-start;
+    ::-webkit-scrollbar-thumb {
       background: #334155;
-      color: var(--text);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
     }
 
-    .chat-input-area {
-      padding: 12px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
+    @keyframes pulse-red {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 15px rgba(239, 68, 68, 0.2);
+        border-color: #ef4444;
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(239, 68, 68, 0.8), inset 0 0 25px rgba(239, 68, 68, 0.4);
+        border-color: #dc2626;
+      }
     }
 
-    .chat-input-area input {
-      flex: 1;
+    .irreversible-alarm {
+      animation: pulse-red 2s infinite ease-in-out;
     }
 
-    .chat-input-area button {
-      width: auto;
-      padding: 8px 16px;
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col antialiased text-gray-100 pb-12">
 
-  <div class="dashboard-grid">
-    <!-- Visual Charts -->
-    <div class="card">
-      <h2>Attendance Overview</h2>
-      <canvas id="attendanceChart"></canvas>
+  <header class="sticky top-0 z-40 w-full glass-card border-b border-slate-800 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-graduation-cap text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">
+            AttendAI Advisor
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Smart Attendance Health & Recovery Planner</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3 text-xs sm:text-sm">
+        <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1.5 flex items-center space-x-2">
+          <i class="fa-regular fa-calendar-check text-brand-400"></i>
+          <span class="text-slate-400 hidden md:inline">Today:</span>
+          <span id="current-date-badge" class="font-medium text-slate-200">Sept 28, 2026</span>
+        </div>
+        <button id="btn-reset-data" onclick="app.resetData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition" title="Reset to Defaults">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
     </div>
+  </header>
 
-    <!-- OD / Leave Simulator -->
-    <div class="card">
-      <h2>OD / Leave Simulator</h2>
-      <div class="form-group">
-        <label for="simSubject">Select Subject</label>
-        <select id="simSubject"></select>
+  <div id="irreversible-banner-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 hidden">
+    <div class="irreversible-alarm bg-gradient-to-r from-red-950/90 via-red-900/80 to-red-950/90 border border-red-600 rounded-2xl p-4 sm:p-5 text-white shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-start space-x-4">
+        <div class="p-3 bg-red-600/30 rounded-xl border border-red-500/50 text-red-400 shrink-0 mt-0.5">
+          <i class="fa-solid fa-triangle-exclamation text-2xl animate-bounce"></i>
+        </div>
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-red-200 flex items-center gap-2">
+            <span>CRITICAL DETENTION ALERT: MATHEMATICALLY IRREVERSIBLE</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-red-800 border border-red-500 text-red-100 font-mono uppercase">Detention Zone</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-red-300/90 mt-1" id="irreversible-banner-text">
+            One or more subjects have dropped below the recoverable threshold. Even with 100% attendance until the end of the semester, reaching 75% attendance is mathematically impossible.
+          </p>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="simType">Adjustment Type</label>
-        <select id="simType">
-          <option value="OD">On-Duty (OD) / Medical (Adds to Attended & Total)</option>
-          <option value="Absence">Unexcused Leave (Adds to Total only)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="simDays">Number of Days / Classes</label>
-        <input type="number" id="simDays" min="1" value="1" />
-      </div>
-      <button onclick="runSimulation()">Simulate Impact</button>
-      <div id="simResult" style="margin-top: 16px; font-size: 0.9rem;"></div>
+      <button onclick="app.openDetentionModal()" class="w-full md:w-auto px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg transition flex items-center justify-center space-x-2 shrink-0">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>View Affected Subjects</span>
+      </button>
     </div>
   </div>
 
-  <!-- Attendance Advisor Chatbot Floating Interface -->
-  <button id="chat-widget-button" onclick="toggleChat()">💬</button>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 flex-1 space-y-6">
 
-  <div id="chat-window">
-    <div class="chat-header">
-      <span>Attendance Advisor</span>
-      <span style="cursor:pointer;" onclick="toggleChat()">✕</span>
-    </div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="message bot">
-        Hi! Ask me questions like: <em>"If I take 3 days off in Chemistry, will I drop below 75%?"</em>
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Section Selector & Target Date Card -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-brand-400"></i>
+              <span>Class & Target Settings</span>
+            </h2>
+            <span class="text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full font-mono" id="active-section-label">CSE-A</span>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Select Class Section</label>
+              <select id="section-select" onchange="app.changeSection(this.value)" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
+                <option value="CSE-A">Computer Science (CSE-A)</option>
+                <option value="CSE-B">Computer Science (CSE-B)</option>
+                <option value="ECE-A">Electronics (ECE-A)</option>
+                <option value="MECH-A">Mechanical Eng. (MECH-A)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Semester Target Date</label>
+              <div class="relative">
+                <input type="date" id="target-date-input" onchange="app.updateTargetDate(this.value)" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Default set to semester end (Nov 30, 2026).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 text-center">
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider">Calendar Days</p>
+            <p class="text-base font-bold text-slate-200 mt-0.5" id="stat-calendar-days">0</p>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider">Working Days</p>
+            <p class="text-base font-bold text-brand-400 mt-0.5" id="stat-working-days">0</p>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider">Total Classes</p>
+            <p class="text-base font-bold text-cyan-400 mt-0.5" id="stat-total-remaining-classes">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Health Overview Metrics -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-chart-line text-brand-400"></i>
+              <span>Aggregate Semester Attendance Summary</span>
+            </h2>
+            <span id="overall-status-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Health Status: Good
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+            <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800/80">
+              <span class="text-xs text-slate-400 block mb-1">Overall Percentage</span>
+              <span id="metric-overall-pct" class="text-2xl font-extrabold text-white">0%</span>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="bar-overall-pct" class="bg-brand-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800/80">
+              <span class="text-xs text-slate-400 block mb-1">Attended / Done</span>
+              <span id="metric-attended-total" class="text-xl font-bold text-slate-200">0 / 0</span>
+              <span class="text-[11px] text-slate-500 block mt-1">Classes held so far</span>
+            </div>
+
+            <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800/80">
+              <span class="text-xs text-slate-400 block mb-1">Safe Bunks Left</span>
+              <span id="metric-bunk-allowance" class="text-xl font-bold text-amber-400">0</span>
+              <span class="text-[11px] text-slate-500 block mt-1">Across all subjects</span>
+            </div>
+
+            <div class="bg-slate-900/70 p-3.5 rounded-xl border border-slate-800/80">
+              <span class="text-xs text-slate-400 block mb-1">Critical Subjects</span>
+              <span id="metric-at-risk-count" class="text-xl font-bold text-red-400">0</span>
+              <span class="text-[11px] text-slate-500 block mt-1">Below 75% threshold</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-brand-950/40 border border-brand-800/30 rounded-xl p-3 flex items-center space-x-3 text-xs text-brand-200">
+          <i class="fa-solid fa-lightbulb text-amber-400 text-sm shrink-0"></i>
+          <span id="dynamic-summary-tip">Tip: Keep your attendance above 75% to prevent mandatory detention and above 90% for distinction honor roll.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Visual Analytics Chart (Chart.js) -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-brand-400"></i>
+            <span>Visual Attendance Health Chart</span>
+          </h2>
+          <div class="flex items-center space-x-4 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Safe (&gt;=75%)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>Danger (&lt;75%)</span>
+          </div>
+        </div>
+        <div class="h-64 sm:h-72 w-full relative">
+          <canvas id="attendanceChart"></canvas>
+        </div>
+      </div>
+
+      <!-- OD / Medical Leave Simulator Card -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-amber-400"></i>
+              <span>OD / Leave Simulator</span>
+            </h2>
+            <span class="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Instant Math</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Simulate how On-Duty (OD), Medical Leave, or unexpected absences impact your final subject percentage.</p>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Target Subject</label>
+              <select id="sim-subject-select" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Adjustment Type</label>
+              <select id="sim-type-select" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
+                <option value="OD">On-Duty / Medical (Counts as Attended & Conducted)</option>
+                <option value="ABSENT">Unexcused Leave (Absence - Counts as Conducted only)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">Number of Days / Classes</label>
+              <input type="number" id="sim-count-input" min="1" max="30" value="2" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500 transition">
+            </div>
+
+            <button onclick="app.runSimulation()" class="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-play text-xs"></i>
+              <span>Recalculate Impact</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="sim-output-box" class="mt-4 p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 min-h-[70px] flex items-center justify-center text-center">
+          <span class="text-slate-500">Select options above and click "Recalculate Impact".</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-card rounded-2xl p-5 border border-slate-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <div>
+          <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-book-bookmark text-brand-400"></i>
+            <span>Subject Attendance Breakdowns & Target Calculations</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Edit attended or conducted class counts directly to update calculations instantly.</p>
+        </div>
+        <button onclick="app.addNewSubjectModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-plus text-brand-400"></i>
+          <span>Add Custom Subject</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[800px]">
+          <thead>
+            <tr class="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <th class="py-3 px-3">Subject Name</th>
+              <th class="py-3 px-3">Current Attendance</th>
+              <th class="py-3 px-3 text-center">Current %</th>
+              <th class="py-3 px-3 text-center">Remaining Classes</th>
+              <th class="py-3 px-3 text-center">Needed for 75%</th>
+              <th class="py-3 px-3 text-center">Needed for 90%</th>
+              <th class="py-3 px-3 text-center">Bunk Safe</th>
+              <th class="py-3 px-3 text-center">Status</th>
+              <th class="py-3 px-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="subjects-table-body" class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="detention-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-red-600 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-600/20 rounded-full blur-2xl"></div>
+      
+      <div class="flex items-center space-x-3 text-red-500 mb-3">
+        <div class="w-10 h-10 rounded-xl bg-red-950 border border-red-600/50 flex items-center justify-center text-red-400 text-xl font-bold">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-lg font-extrabold text-white">IRREVERSIBLE DETENTION ALERT</h3>
+      </div>
+
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+        According to current attendance records and calculated remaining working days through the target date, it is <strong class="text-red-400">mathematically impossible</strong> to reach the mandatory 75% threshold in the subject(s) listed below even if you attend 100% of all future classes:
+      </p>
+
+      <div id="detention-modal-list" class="space-y-2 mb-5 max-h-48 overflow-y-auto pr-1">
+      </div>
+
+      <div class="bg-red-950/40 border border-red-800/50 rounded-xl p-3 text-xs text-red-300/90 mb-5">
+        <i class="fa-solid fa-circle-exclamation mr-1.5 text-red-400"></i>
+        <strong>Action Needed:</strong> Please contact your course coordinator or HOD immediately to file formal On-Duty (OD) medical leave waivers to adjust past absences.
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="app.closeDetentionModal()" class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl transition">
+          I Understand
+        </button>
       </div>
     </div>
-    <div class="chat-input-area">
-      <input type="text" id="chatInput" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') sendMessage()" />
-      <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <div id="add-subject-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-plus-circle text-brand-400"></i>
+          <span>Add Custom Subject</span>
+        </h3>
+        <button onclick="app.closeAddSubjectModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Subject Name</label>
+          <input type="text" id="new-subj-name" placeholder="e.g. Artificial Intelligence" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Classes Attended</label>
+            <input type="number" id="new-subj-attended" value="20" min="0" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Total Classes Held</label>
+            <input type="number" id="new-subj-conducted" value="25" min="1" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Classes Scheduled Per Week</label>
+          <input type="number" id="new-subj-perweek" value="4" min="1" max="15" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6">
+        <button onclick="app.closeAddSubjectModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-xl hover:bg-slate-700 transition">Cancel</button>
+        <button onclick="app.saveNewSubject()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl transition">Save Subject</button>
+      </div>
     </div>
+  </div>
+
+  <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+    
+    <div id="chat-window" class="hidden mb-3 w-[340px] sm:w-[380px] h-[460px] glass-card border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300">
+      
+      <div class="bg-slate-900/90 border-b border-slate-800 p-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center text-white text-xs shadow">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-xs text-slate-100">Attendance Advisor AI</h4>
+            <span class="text-[10px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Context-Aware Engine
+            </span>
+          </div>
+        </div>
+        <button onclick="app.toggleChat()" class="text-slate-400 hover:text-white text-sm p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="chat-messages" class="flex-1 p-3.5 overflow-y-auto space-y-3 text-xs">
+        <div class="flex items-start space-x-2">
+          <div class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div class="bg-slate-800/90 text-slate-200 border border-slate-700/60 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed">
+            Hello! I'm your <strong>Attendance Advisor</strong>. Ask me natural questions like:
+            <ul class="list-disc list-inside mt-1.5 text-[11px] text-slate-300 space-y-1">
+              <li>"If I take a 3-day sick leave, will Chemistry drop below 75%?"</li>
+              <li>"How many math classes can I miss safely?"</li>
+              <li>"Am I safe in CSE-A overall?"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-3 py-1.5 bg-slate-900/40 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] text-slate-400 no-scrollbar">
+        <button onclick="app.sendQuickChat('Can I miss 2 classes in Math?')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 shrink-0 transition">Miss 2 Math classes?</button>
+        <button onclick="app.sendQuickChat('3-day sick leave impact on Chemistry?')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 shrink-0 transition">3-day sick leave?</button>
+        <button onclick="app.sendQuickChat('What is my overall status?')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 shrink-0 transition">Overall health?</button>
+      </div>
+
+      <div class="p-2.5 bg-slate-900/90 border-t border-slate-800 flex items-center gap-2">
+        <input type="text" id="chat-input-field" onkeydown="if(event.key==='Enter') app.sendChatMessage()" placeholder="Type your attendance question..." class="flex-1 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
+        <button onclick="app.sendChatMessage()" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition text-xs flex items-center justify-center w-8 h-8 shrink-0">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+
+    <button id="chat-toggle-btn" onclick="app.toggleChat()" class="relative group bg-gradient-to-tr from-brand-600 to-cyan-500 hover:from-brand-500 hover:to-cyan-400 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-105">
+      <i class="fa-solid fa-comments"></i>
+      <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500"></span>
+      </span>
+    </button>
   </div>
 
   <script>
-    // Primary Dashboard State
-    let studentData = {
-      "Mathematics": { attended: 38, total: 45, dailyClasses: 1 },
-      "Chemistry": { attended: 31, total: 40, dailyClasses: 1 },
-      "Physics": { attended: 22, total: 30, dailyClasses: 1 },
-      "Computer Science": { attended: 48, total: 50, dailyClasses: 2 }
+    const SECTION_PRESETS = {
+      'CSE-A': [
+        { id: 'sub-1', name: 'Data Structures & Algo', attended: 32, conducted: 40, perWeek: 4 },
+        { id: 'sub-2', name: 'Database Systems (DBMS)', attended: 28, conducted: 36, perWeek: 3 },
+        { id: 'sub-3', name: 'Operating Systems', attended: 22, conducted: 34, perWeek: 4 },
+        { id: 'sub-4', name: 'Computer Networks', attended: 35, conducted: 38, perWeek: 3 },
+        { id: 'sub-5', name: 'Mathematics III', attended: 18, conducted: 32, perWeek: 4 }
+      ],
+      'CSE-B': [
+        { id: 'sub-1', name: 'Data Structures & Algo', attended: 36, conducted: 40, perWeek: 4 },
+        { id: 'sub-2', name: 'Database Systems (DBMS)', attended: 30, conducted: 35, perWeek: 3 },
+        { id: 'sub-3', name: 'Software Engineering', attended: 28, conducted: 32, perWeek: 3 },
+        { id: 'sub-4', name: 'Web Technologies', attended: 33, conducted: 36, perWeek: 4 }
+      ],
+      'ECE-A': [
+        { id: 'sub-1', name: 'Digital Signal Processing', attended: 25, conducted: 35, perWeek: 4 },
+        { id: 'sub-2', name: 'Microcontrollers', attended: 30, conducted: 36, perWeek: 4 },
+        { id: 'sub-3', name: 'VLSI Design', attended: 20, conducted: 30, perWeek: 3 },
+        { id: 'sub-4', name: 'Electromagnetic Fields', attended: 15, conducted: 30, perWeek: 3 }
+      ],
+      'MECH-A': [
+        { id: 'sub-1', name: 'Thermodynamics', attended: 32, conducted: 38, perWeek: 4 },
+        { id: 'sub-2', name: 'Fluid Mechanics', attended: 28, conducted: 35, perWeek: 4 },
+        { id: 'sub-3', name: 'Manufacturing Processes', attended: 34, conducted: 36, perWeek: 3 },
+        { id: 'sub-4', name: 'Kinematics of Machinery', attended: 22, conducted: 32, perWeek: 3 }
+      ]
     };
 
-    let attendanceChart;
-
-    // Initialize Dashboard Components
-    function initDashboard() {
-      // Populate subject options in simulator
-      const select = document.getElementById("simSubject");
-      select.innerHTML = "";
-      Object.keys(studentData).forEach(subject => {
-        const option = document.createElement("option");
-        option.value = subject;
-        option.textContent = subject;
-        select.appendChild(option);
-      });
-
-      renderChart();
-    }
-
-    // Render / Update Chart.js Bar Chart
-    function renderChart() {
-      const ctx = document.getElementById('attendanceChart').getContext('2d');
-      const labels = Object.keys(studentData);
-      const percentages = labels.map(sub => {
-        return ((studentData[sub].attended / studentData[sub].total) * 100).toFixed(1);
-      });
-
-      const backgroundColors = percentages.map(p => p >= 75 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
-      const borderColors = percentages.map(p => p >= 75 ? '#22c55e' : '#ef4444');
-
-      if (attendanceChart) {
-        attendanceChart.destroy();
+    class AttendanceApp {
+      constructor() {
+        this.today = new Date(2026, 8, 28); // Sept 28, 2026
+        this.targetDate = new Date(2026, 10, 30); // Nov 30, 2026
+        
+        this.currentSection = 'CSE-A';
+        this.subjects = JSON.parse(JSON.stringify(SECTION_PRESETS['CSE-A']));
+        this.chartInstance = null;
+        
+        this.init();
       }
 
-      attendanceChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Attendance %',
-            data: percentages,
-            backgroundColor: backgroundColors,
-            borderColor: borderColors,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              ticks: { color: '#f8fafc' }
-            },
-            x: {
-              ticks: { color: '#f8fafc' }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: '#f8fafc' } }
+      init() {
+        document.getElementById('current-date-badge').innerText = this.formatDate(this.today);
+        
+        const datePicker = document.getElementById('target-date-input');
+        datePicker.value = this.targetDate.toISOString().split('T')[0];
+
+        this.renderAll();
+      }
+
+      formatDate(d) {
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      calculateWorkingDays(startDate, endDate) {
+        if (endDate < startDate) return 0;
+        let count = 0;
+        let cur = new Date(startDate.getTime());
+        
+        while (cur <= endDate) {
+          const day = cur.getDay();
+          if (day !== 0 && day !== 6) {
+            count++;
           }
+          cur.setDate(cur.getDate() + 1);
         }
-      });
-    }
-
-    // OD Simulator Engine
-    function runSimulation() {
-      const subject = document.getElementById("simSubject").value;
-      const type = document.getElementById("simType").value;
-      const count = parseInt(document.getElementById("simDays").value) || 0;
-
-      const current = studentData[subject];
-      let newAttended = current.attended;
-      let newTotal = current.total + count;
-
-      if (type === "OD") {
-        newAttended += count;
+        return count;
       }
 
-      const currentPct = ((current.attended / current.total) * 100).toFixed(1);
-      const newPct = ((newAttended / newTotal) * 100).toFixed(1);
-      const diff = (newPct - currentPct).toFixed(1);
-
-      const resultDiv = document.getElementById("simResult");
-      const statusColor = newPct >= 75 ? "var(--success)" : "var(--danger)";
-
-      resultDiv.innerHTML = `
-        <strong>${subject} Impact:</strong><br/>
-        Current: ${currentPct}% (${current.attended}/${current.total})<br/>
-        Projected: <span style="color:${statusColor}; font-weight:bold;">${newPct}%</span> (${newAttended}/${newTotal})<br/>
-        Change: ${diff >= 0 ? '+' + diff : diff}%
-      `;
-    }
-
-    // Chatbot Functionality
-    function toggleChat() {
-      const chatWin = document.getElementById("chat-window");
-      chatWin.style.display = chatWin.style.display === "flex" ? "none" : "flex";
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("chatInput");
-      const text = input.value.trim();
-      if (!text) return;
-
-      appendMessage(text, 'user');
-      input.value = '';
-
-      // Engine simulation delay for natural UX
-      setTimeout(() => {
-        const response = processAdvisorQuery(text);
-        appendMessage(response, 'bot');
-      }, 400);
-    }
-
-    function appendMessage(text, sender) {
-      const messagesContainer = document.getElementById("chatMessages");
-      const msgDiv = document.createElement("div");
-      msgDiv.className = `message ${sender}`;
-      msgDiv.innerHTML = text;
-      messagesContainer.appendChild(msgDiv);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    // Attendance Advisor Query Parser & Engine
-    function processAdvisorQuery(query) {
-      const q = query.toLowerCase();
-
-      // Extract subject
-      let matchedSubject = Object.keys(studentData).find(s => q.includes(s.toLowerCase()));
-
-      // Extract number of days/classes
-      let daysMatch = q.match(/(\d+)\s*(-day|day|class|classes)?/);
-      let days = daysMatch ? parseInt(daysMatch[1]) : 1;
-
-      if (!matchedSubject) {
-        return "I couldn't identify the subject in your question. Please mention one of: " + Object.keys(studentData).join(", ");
+      getCalendarDays() {
+        const diffTime = this.targetDate.getTime() - this.today.getTime();
+        if (diffTime < 0) return 0;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       }
 
-      const data = studentData[matchedSubject];
-      const totalClassesMissed = days * data.dailyClasses;
-      const projectedTotal = data.total + totalClassesMissed;
-      const projectedPct = ((data.attended / projectedTotal) * 100).toFixed(1);
-      const currentPct = ((data.attended / data.total) * 100).toFixed(1);
+      getSubjectCalculations(subj) {
+        const workingDays = this.calculateWorkingDays(this.today, this.targetDate);
+        const weeksRemaining = workingDays / 5;
+        const remainingClasses = Math.round(weeksRemaining * subj.perWeek);
 
-      if (projectedPct < 75) {
-        return `⚠️ <strong>Warning:</strong> Taking ${days} day(s) off in <strong>${matchedSubject}</strong> will drop your attendance from <strong>${currentPct}%</strong> to <span style="color:var(--danger)"><strong>${projectedPct}%</strong></span>, which is below the mandatory 75% threshold.`;
-      } else {
-        return `✅ <strong>Safe:</strong> Taking ${days} day(s) off in <strong>${matchedSubject}</strong> will lower your attendance from <strong>${currentPct}%</strong> to <strong>${projectedPct}%</strong>. You remain above the 75% threshold.`;
+        const currentAttended = parseInt(subj.attended) || 0;
+        const currentConducted = parseInt(subj.conducted) || 0;
+        const currentPct = currentConducted > 0 ? (currentAttended / currentConducted) * 100 : 0;
+
+        const maxPossibleConducted = currentConducted + remainingClasses;
+        const maxPossibleAttended = currentAttended + remainingClasses;
+        const maxPossiblePct = maxPossibleConducted > 0 ? (maxPossibleAttended / maxPossibleConducted) * 100 : 0;
+
+        const required75Count = Math.ceil(0.75 * maxPossibleConducted - currentAttended);
+        const needed75 = Math.max(0, required75Count);
+
+        const required90Count = Math.ceil(0.90 * maxPossibleConducted - currentAttended);
+        const needed90 = Math.max(0, required90Count);
+
+        const maxBunksPossible = Math.floor(currentAttended + remainingClasses - 0.75 * maxPossibleConducted);
+        const safeBunks = Math.max(0, maxBunksPossible);
+
+        const isIrreversible = maxPossiblePct < 75;
+
+        let status = 'SAFE';
+        if (isIrreversible) status = 'DETENTION_IRREVERSIBLE';
+        else if (currentPct >= 90) status = 'HIGH_HONORS';
+        else if (currentPct >= 75) status = 'SAFE';
+        else if (currentPct >= 70) status = 'AT_RISK';
+        else status = 'CRITICAL';
+
+        return {
+          remainingClasses,
+          currentPct,
+          maxPossiblePct,
+          needed75,
+          needed90,
+          safeBunks,
+          isIrreversible,
+          status,
+          is75Possible: needed75 <= remainingClasses,
+          is90Possible: needed90 <= remainingClasses
+        };
+      }
+
+      renderAll() {
+        this.renderCalendarStats();
+        this.renderSubjectTable();
+        this.renderOverallMetrics();
+        this.renderChart();
+        this.updateSimulatorOptions();
+        this.checkIrreversibleDetentions();
+      }
+
+      renderCalendarStats() {
+        const calDays = this.getCalendarDays();
+        const workDays = this.calculateWorkingDays(this.today, this.targetDate);
+        
+        let totalRemaining = 0;
+        this.subjects.forEach(s => {
+          const calc = this.getSubjectCalculations(s);
+          totalRemaining += calc.remainingClasses;
+        });
+
+        document.getElementById('stat-calendar-days').innerText = calDays;
+        document.getElementById('stat-working-days').innerText = workDays;
+        document.getElementById('stat-total-remaining-classes').innerText = totalRemaining;
+      }
+
+      renderSubjectTable() {
+        const tbody = document.getElementById('subjects-table-body');
+        tbody.innerHTML = '';
+
+        this.subjects.forEach((subj, idx) => {
+          const calc = this.getSubjectCalculations(subj);
+          
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/50";
+
+          let statusBadge = '';
+          if (calc.status === 'DETENTION_IRREVERSIBLE') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-600 animate-pulse">DETENTION</span>`;
+          } else if (calc.status === 'HIGH_HONORS') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">≥ 90% Distinction</span>`;
+          } else if (calc.status === 'SAFE') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Safe (≥ 75%)</span>`;
+          } else if (calc.status === 'AT_RISK') {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">At Risk (70-74%)</span>`;
+          } else {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20">Critical (&lt; 70%)</span>`;
+          }
+
+          let needed75Display = '';
+          if (calc.isIrreversible) {
+            needed75Display = `<span class="text-red-400 font-bold" title="Impossible even with 100% attendance">Impossible</span>`;
+          } else if (calc.needed75 === 0) {
+            needed75Display = `<span class="text-emerald-400 font-medium">Achieved</span>`;
+          } else {
+            needed75Display = `<span class="text-amber-400 font-semibold">${calc.needed75} / ${calc.remainingClasses}</span>`;
+          }
+
+          let needed90Display = '';
+          if (!calc.is90Possible) {
+            needed90Display = `<span class="text-slate-500">Unreachable</span>`;
+          } else if (calc.needed90 === 0) {
+            needed90Display = `<span class="text-emerald-400 font-medium">Achieved</span>`;
+          } else {
+            needed90Display = `<span class="text-cyan-400 font-medium">${calc.needed90} / ${calc.remainingClasses}</span>`;
+          }
+
+          tr.innerHTML = `
+            <td class="py-3 px-3 font-semibold text-slate-200">
+              ${subj.name}
+              <span class="block text-[10px] text-slate-500 font-normal">${subj.perWeek} classes/wk</span>
+            </td>
+            <td class="py-3 px-3">
+              <div class="flex items-center space-x-1.5">
+                <input type="number" value="${subj.attended}" min="0" onchange="app.updateSubjectCount(${idx}, 'attended', this.value)" class="w-12 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-center text-xs text-white focus:border-brand-500">
+                <span class="text-slate-500">/</span>
+                <input type="number" value="${subj.conducted}" min="1" onchange="app.updateSubjectCount(${idx}, 'conducted', this.value)" class="w-12 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-center text-xs text-white focus:border-brand-500">
+              </div>
+            </td>
+            <td class="py-3 px-3 text-center">
+              <span class="font-bold ${calc.currentPct >= 75 ? 'text-emerald-400' : 'text-red-400'}">
+                ${calc.currentPct.toFixed(1)}%
+              </span>
+            </td>
+            <td class="py-3 px-3 text-center text-slate-300 font-mono">${calc.remainingClasses}</td>
+            <td class="py-3 px-3 text-center font-mono">${needed75Display}</td>
+            <td class="py-3 px-3 text-center font-mono">${needed90Display}</td>
+            <td class="py-3 px-3 text-center font-mono font-bold text-amber-400">${calc.safeBunks}</td>
+            <td class="py-3 px-3 text-center">${statusBadge}</td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="app.removeSubject(${idx})" class="text-slate-500 hover:text-red-400 transition px-2 py-1">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderOverallMetrics() {
+        let totalAttended = 0;
+        let totalConducted = 0;
+        let totalBunkAllowance = 0;
+        let atRiskCount = 0;
+
+        this.subjects.forEach(s => {
+          totalAttended += parseInt(s.attended) || 0;
+          totalConducted += parseInt(s.conducted) || 0;
+          const calc = this.getSubjectCalculations(s);
+          totalBunkAllowance += calc.safeBunks;
+          if (calc.currentPct < 75) atRiskCount++;
+        });
+
+        const overallPct = totalConducted > 0 ? (totalAttended / totalConducted) * 100 : 0;
+
+        document.getElementById('metric-overall-pct').innerText = `${overallPct.toFixed(1)}%`;
+        document.getElementById('bar-overall-pct').style.width = `${Math.min(100, overallPct)}%`;
+        document.getElementById('metric-attended-total').innerText = `${totalAttended} / ${totalConducted}`;
+        document.getElementById('metric-bunk-allowance').innerText = totalBunkAllowance;
+        document.getElementById('metric-at-risk-count').innerText = atRiskCount;
+
+        const badge = document.getElementById('overall-status-badge');
+        if (atRiskCount > 0) {
+          badge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20";
+          badge.innerText = `Health: ${atRiskCount} Subject(s) At Risk`;
+        } else {
+          badge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          badge.innerText = "Health Status: Excellent";
+        }
+      }
+
+      renderChart() {
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const labels = this.subjects.map(s => s.name);
+        const dataPct = this.subjects.map(s => {
+          const calc = this.getSubjectCalculations(s);
+          return parseFloat(calc.currentPct.toFixed(1));
+        });
+
+        const bgColors = dataPct.map(p => p >= 75 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
+        const borderColors = dataPct.map(p => p >= 75 ? '#22c55e' : '#ef4444');
+
+        if (this.chartInstance) {
+          this.chartInstance.destroy();
+        }
+
+        this.chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Current Attendance %',
+              data: dataPct,
+              backgroundColor: bgColors,
+              borderColor: borderColors,
+              borderWidth: 1.5,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#94a3b8' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8', font: { size: 10 } }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => ` Attendance: ${context.parsed.y}%`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      updateSimulatorOptions() {
+        const select = document.getElementById('sim-subject-select');
+        select.innerHTML = '';
+        this.subjects.forEach((s, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = s.name;
+          select.appendChild(opt);
+        });
+      }
+
+      runSimulation() {
+        const subjIndex = parseInt(document.getElementById('sim-subject-select').value);
+        if (isNaN(subjIndex) || !this.subjects[subjIndex]) return;
+
+        const subj = this.subjects[subjIndex];
+        const type = document.getElementById('sim-type-select').value;
+        const count = parseInt(document.getElementById('sim-count-input').value) || 0;
+
+        let newAttended = parseInt(subj.attended) || 0;
+        let newConducted = (parseInt(subj.conducted) || 0) + count;
+
+        if (type === 'OD') {
+          newAttended += count;
+        }
+
+        const oldPct = subj.conducted > 0 ? (subj.attended / subj.conducted) * 100 : 0;
+        const newPct = newConducted > 0 ? (newAttended / newConducted) * 100 : 0;
+        const diff = newPct - oldPct;
+
+        const box = document.getElementById('sim-output-box');
+        const colorClass = newPct >= 75 ? 'text-emerald-400' : 'text-red-400';
+
+        box.innerHTML = `
+          <div class="w-full text-left">
+            <p class="font-bold text-slate-200 mb-1">${subj.name} Projection:</p>
+            <div class="flex items-center justify-between">
+              <span>Before: <strong>${oldPct.toFixed(1)}%</strong></span>
+              <span>After: <strong class="${colorClass}">${newPct.toFixed(1)}%</strong></span>
+              <span>Change: <strong class="${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%</strong></span>
+            </div>
+          </div>
+        `;
+      }
+
+      checkIrreversibleDetentions() {
+        const detainedSubjects = [];
+        this.subjects.forEach(s => {
+          const calc = this.getSubjectCalculations(s);
+          if (calc.isIrreversible) {
+            detainedSubjects.push({ subject: s, calc });
+          }
+        });
+
+        const banner = document.getElementById('irreversible-banner-container');
+        if (detainedSubjects.length > 0) {
+          banner.classList.remove('hidden');
+          document.getElementById('irreversible-banner-text').innerText = 
+            `Mathematics confirm that you cannot reach 75% attendance in ${detainedSubjects.length} subject(s) (${detainedSubjects.map(d => d.subject.name).join(', ')}) before the target date.`;
+        } else {
+          banner.classList.add('hidden');
+        }
+      }
+
+      openDetentionModal() {
+        const modal = document.getElementById('detention-modal');
+        const list = document.getElementById('detention-modal-list');
+        list.innerHTML = '';
+
+        this.subjects.forEach(s => {
+          const calc = this.getSubjectCalculations(s);
+          if (calc.isIrreversible) {
+            const div = document.createElement('div');
+            div.className = "bg-red-950/60 border border-red-800/80 p-3 rounded-xl flex justify-between items-center text-xs";
+            div.innerHTML = `
+              <div>
+                <strong class="text-red-200 block">${s.name}</strong>
+                <span class="text-slate-400">Current: ${calc.currentPct.toFixed(1)}% (${s.attended}/${s.conducted})</span>
+              </div>
+              <div class="text-right">
+                <span class="text-red-400 font-bold block">Max Possible: ${calc.maxPossiblePct.toFixed(1)}%</span>
+                <span class="text-slate-500 text-[10px]">${calc.remainingClasses} classes left</span>
+              </div>
+            `;
+            list.appendChild(div);
+          }
+        });
+
+        modal.classList.remove('hidden');
+      }
+
+      closeDetentionModal() {
+        document.getElementById('detention-modal').classList.add('hidden');
+      }
+
+      changeSection(secKey) {
+        this.currentSection = secKey;
+        document.getElementById('active-section-label').innerText = secKey;
+        this.subjects = JSON.parse(JSON.stringify(SECTION_PRESETS[secKey] || SECTION_PRESETS['CSE-A']));
+        this.renderAll();
+      }
+
+      updateTargetDate(dateStr) {
+        if (!dateStr) return;
+        this.targetDate = new Date(dateStr);
+        this.renderAll();
+      }
+
+      updateSubjectCount(index, field, value) {
+        const val = parseInt(value) || 0;
+        if (this.subjects[index]) {
+          this.subjects[index][field] = val;
+          this.renderAll();
+        }
+      }
+
+      removeSubject(index) {
+        this.subjects.splice(index, 1);
+        this.renderAll();
+      }
+
+      addNewSubjectModal() {
+        document.getElementById('add-subject-modal').classList.remove('hidden');
+      }
+
+      closeAddSubjectModal() {
+        document.getElementById('add-subject-modal').classList.add('hidden');
+      }
+
+      saveNewSubject() {
+        const name = document.getElementById('new-subj-name').value.trim() || 'New Subject';
+        const attended = parseInt(document.getElementById('new-subj-attended').value) || 0;
+        const conducted = parseInt(document.getElementById('new-subj-conducted').value) || 1;
+        const perWeek = parseInt(document.getElementById('new-subj-perweek').value) || 3;
+
+        this.subjects.push({
+          id: 'sub-' + Date.now(),
+          name,
+          attended,
+          conducted,
+          perWeek
+        });
+
+        this.closeAddSubjectModal();
+        this.renderAll();
+      }
+
+      resetData() {
+        this.changeSection(this.currentSection);
+      }
+
+      toggleChat() {
+        const win = document.getElementById('chat-window');
+        win.classList.toggle('hidden');
+      }
+
+      sendQuickChat(msg) {
+        document.getElementById('chat-input-field').value = msg;
+        this.sendChatMessage();
+      }
+
+      sendChatMessage() {
+        const input = document.getElementById('chat-input-field');
+        const text = input.value.trim();
+        if (!text) return;
+
+        this.appendChatMessage(text, 'user');
+        input.value = '';
+
+        setTimeout(() => {
+          const reply = this.processAdvisorQuery(text);
+          this.appendChatMessage(reply, 'bot');
+        }, 350);
+      }
+
+      appendChatMessage(text, sender) {
+        const container = document.getElementById('chat-messages');
+        const wrapper = document.createElement('div');
+        wrapper.className = sender === 'user' ? 'flex justify-end' : 'flex items-start space-x-2';
+
+        if (sender === 'user') {
+          wrapper.innerHTML = `
+            <div class="bg-brand-600 text-white p-2.5 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
+              ${text}
+            </div>
+          `;
+        } else {
+          wrapper.innerHTML = `
+            <div class="w-6 h-6 rounded-full bg-brand-600/30 text-brand-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+              <i class="fa-solid fa-robot"></i>
+            </div>
+            <div class="bg-slate-800/90 text-slate-200 border border-slate-700/60 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed">
+              ${text}
+            </div>
+          `;
+        }
+
+        container.appendChild(wrapper);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      processAdvisorQuery(query) {
+        const q = query.toLowerCase();
+
+        if (q.includes('overall') || q.includes('all subject') || q.includes('summary')) {
+          let totalAttended = 0;
+          let totalConducted = 0;
+          this.subjects.forEach(s => {
+            totalAttended += s.attended;
+            totalConducted += s.conducted;
+          });
+          const pct = totalConducted > 0 ? (totalAttended / totalConducted) * 100 : 0;
+          return `Your overall semester attendance is currently <strong>${pct.toFixed(1)}%</strong> (${totalAttended}/${totalConducted} total classes). ${pct >= 75 ? 'You are in good standing overall!' : '⚠️ You are currently in the danger zone overall.'}`;
+        }
+
+        const matchedSubject = this.subjects.find(s => q.includes(s.name.toLowerCase()) || s.name.toLowerCase().split(' ').some(w => w.length > 3 && q.includes(w)));
+
+        const numberMatch = q.match(/(\d+)/);
+        const count = numberMatch ? parseInt(numberMatch[1]) : 1;
+
+        if (matchedSubject) {
+          const calc = this.getSubjectCalculations(matchedSubject);
+
+          if (q.includes('miss') || q.includes('bunk') || q.includes('leave') || q.includes('absent') || q.includes('off') || q.includes('sick')) {
+            const projectedConducted = matchedSubject.conducted + count;
+            const projectedPct = (matchedSubject.attended / projectedConducted) * 100;
+
+            if (projectedPct < 75) {
+              return `⚠️ <strong>Warning:</strong> Missing ${count} class(es) in <strong>${matchedSubject.name}</strong> will drop your attendance from <strong>${calc.currentPct.toFixed(1)}%</strong> to <span class="text-red-400 font-bold">${projectedPct.toFixed(1)}%</span>, which is below the mandatory 75% threshold!`;
+            } else {
+              return `✅ <strong>Safe:</strong> Missing ${count} class(es) in <strong>${matchedSubject.name}</strong> will lower attendance to <strong>${projectedPct.toFixed(1)}%</strong>. You remain safe above 75%. (You have <strong>${calc.safeBunks}</strong> safe bunks left).`;
+            }
+          }
+
+          return `In <strong>${matchedSubject.name}</strong>, your attendance is <strong>${calc.currentPct.toFixed(1)}%</strong>. There are approx. <strong>${calc.remainingClasses}</strong> classes left. You need to attend <strong>${calc.needed75}</strong> more classes to guarantee staying above 75%.`;
+        }
+
+        return "I couldn't match a specific subject in your question. Available subjects: " + this.subjects.map(s => s.name).join(', ') + ". Try asking: <em>'How many classes can I miss in " + this.subjects[0].name + "?'</em>";
       }
     }
 
-    window.onload = initDashboard;
+    let app;
+    window.addEventListener('DOMContentLoaded', () => {
+      app = new AttendanceApp();
+    });
   </script>
 </body>
 </html>
